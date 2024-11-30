@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wall Detection and Editing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #canvasContainer {
+      position: relative;
+      display: inline-block;
+    }
+    #canvas {
+      display: block;
+      border: 1px solid #ccc;
+    }
+    #editButton, #colorPicker {
+      position: absolute;
+      display: none;
+      z-index: 2;
+      cursor: pointer;
+    }
+    #editButton {
+      padding: 5px 10px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    #colorPicker {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #333;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Wall Detection and Editing</h1>
+  <input type="file" id="imageInput" accept="image/*">
+  <div id="canvasContainer">
+    <canvas id="canvas"></canvas>
+    <button id="editButton">Edit Wall</button>
+    <input type="color" id="colorPicker">
+  </div>
+
+  <script src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+  <script src="script.js"></script>
+</body>
+</html>

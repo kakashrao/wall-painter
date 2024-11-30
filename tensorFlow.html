@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Wall Color</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.1/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+  <style>
+    #canvas {
+      border: 1px solid black;
+      margin-top: 20px;
+      display: block;
+    }
+    #colorPicker {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Upload an Image and Change Wall Color</h1>
+
+  <input type="file" id="imageInput" accept="image/*" />
+  <br><br>
+
+  <canvas id="canvas"></canvas>
+  <div id="colorPicker"></div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const colorPicker = new iro.ColorPicker("#colorPicker", {
+      width: 150,
+      color: "#ff0000", // Default color is red
+    });
+
+    let image = new Image();
+    let segmentationData = null;
+
+    // Load and display image
+    document.getElementById('imageInput').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      image.src = URL.createObjectURL(file);
+
+      image.onload = async () => {
+        // Set canvas size to match the image size
+        canvas.width = image.width;
+        canvas.height = image.height;
+
+        // Draw the image on canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous image
+        ctx.drawImage(image, 0, 0);
+
+        // Perform wall detection (segmentation)
+        segmentationData = await detectWalls(image);
+
+        // Enable click event to change wall color
+        canvas.addEventListener('click', (event) => {
+          const x = event.offsetX;
+          const y = event.offsetY;
+
+          // Check if the clicked area is part of the wall
+          const isWall = isWallArea(x, y, segmentationData);
+          if (isWall) {
+            // Show color picker when wall is clicked
+            colorPicker.on('color:change', (color) => {
+              changeWallColor(x, y, color.hexString);
+            });
+          }
+        });
+      };
+    });
+
+    // Function to detect walls using segmentation (BodyPix model)
+    async function detectWalls(image) {
+      const model = await bodyPix.load(); // Load the BodyPix model
+      const segmentation = await model.segmentPerson(image, {
+        internalResolution: 'medium',
+        segmentationThreshold: 0.5,
+      });
+
+      // Return segmentation mask data (background = 0, person = 1)
+      return segmentation.data;
+    }
+
+    // Function to check if a clicked point is on a wall (background)
+    function isWallArea(x, y, segmentation) {
+      const pixelIndex = (y * canvas.width + x) * 4;
+      // Segment mask value check: background = 0, person = 1
+      const isBackground = segmentation[pixelIndex / 4] === 0;
+      return isBackground;
+    }
+
+    // Function to change the color of the wall at the clicked point
+    function changeWallColor(x, y, color) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Modify color at clicked point if it's a wall (background)
+      const index = (y * canvas.width + x) * 4;
+      const [r, g, b] = hexToRgb(color);
+      data[index] = r;
+      data[index + 1] = g;
+      data[index + 2] = b;
+
+      // Update the canvas with new color
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Helper function to convert HEX color to RGB
+    function hexToRgb(hex) {
+      const bigint = parseInt(hex.slice(1), 16);
+      return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+    }
+  </script>
+
+</body>
+</html>
